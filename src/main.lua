@@ -9,7 +9,7 @@ DENEON = {
 }
 DELTAT_DATA = {0,0}
 _GTIMER, _PED, _VEH, _IN_CAR  = 0, nil, nil, nil
-local wm = WarMenu
+local main_menu = nil
 
 local function SetDeltaT(key, a)
     DELTAT_DATA[key] = _GTIMER - a
@@ -78,40 +78,70 @@ function AnimVehicleNeonsToggle(handle, e)
     end
 end
 
-function ToggleMenu(bool)
-    if bool then
-        wm.OpenMenu('deunderglow_main')
-    else
-        wm.CloseMenu()
+local function GetInputFromUser(text, windowTitleEntry, defaultText, maxLength)
+    AddTextEntry("FMMC_MPM_NA", text)
+    DisplayOnscreenKeyboard(1, windowTitleEntry or 'FMMC_MPM_NA', '', defaultText or '', '', '', '', maxLength or 255)
+    while (UpdateOnscreenKeyboard() == 0) do
+        DisableAllControlActions(0)
+        Wait(0)
     end
-    DENEON.should_draw = bool
+
+    if (GetOnscreenKeyboardResult()) then
+        local result = GetOnscreenKeyboardResult()
+        return result
+    end
 end
 
-local function DrawMenu()
-    if wm.Begin("deunderglow_main") then
-        if wm.CheckBox(LOCALE.main_script, DENEON.enabled) then
-            DENEON.enabled = not DENEON.enabled
-        end
+local function BuildMenu()
+    local r, g, b = table.unpack(MENU_STYLE.color)
+    main_menu = MenuV:CreateMenu(nil, LOCALE.menu_title, MENU_STYLE.position, r, g, b, MENU_STYLE.size, 'none', 'menuv', 'de_underglow_mainmenu')
+    local effects_menu = MenuV:CreateMenu(nil, LOCALE.menu_title, MENU_STYLE.position, r, g, b, MENU_STYLE.size, 'none', 'menuv', 'de_underglow_colors')
+    local toggles_menu = MenuV:CreateMenu(nil, LOCALE.menu_title, MENU_STYLE.position, r, g, b, MENU_STYLE.size, 'none', 'menuv', 'de_underglow_toggles')
 
-        if wm.CheckBox(LOCALE.toggle_neons, DENEON.neons_enabled) then
-            DENEON.neons_enabled = not DENEON.neons_enabled
-            local bool = DENEON.neons_enabled
-            ToggleVehicleNeons(_VEH, { bool, bool, bool, bool })
-        end
+    local toggle_effects = main_menu:AddCheckbox({ icon = '⚙', label = LOCALE.main_script, value = 'n' })
+    local toggle_neons = main_menu:AddCheckbox({ icon = '⚙', label = LOCALE.toggle_neons, value = 'n' })
+    main_menu:AddButton({ icon = '🎨', label = LOCALE.effects_menu_title, value = effects_menu, description = nil })
+    main_menu:AddButton({ icon = '🚦', label = LOCALE.toggles_menu_title, value = toggles_menu, description = nil })
 
-        wm.MenuButton(LOCALE.effects_menu_title, 'deunderglow_effects', '→→→')
-        wm.MenuButton(LOCALE.toggles_menu_title, 'deunderglow_toggles', '→→→')
+    toggle_effects:On('change', function(button_ref, toggle)
+        DENEON.enabled = toggle
+    end)
 
-        wm.End()
-    elseif wm.Begin("deunderglow_effects") then
-        for i = 1, #COLORS do
-            local e = COLORS[i]
-            if e.input then
+    toggle_neons:On('change', function(button_ref, toggle)
+        DENEON.neons_enabled = toggle
+        print(toggle, type(toggle))
+        ToggleVehicleNeons(_VEH, { toggle, toggle, toggle, toggle })
+    end)
+
+    -- Toggles SubMenu
+    for i = 1, #TOGGLES do
+        toggles_menu:AddButton({
+            icon = nil,
+            label = TOGGLES[i].title,
+            value = i,
+            description = ("%s / %s"):format(i, #TOGGLES)
+        }):On("select", function(button_ref)
+            DENEON.toggles_index = i
+        end)
+    end
+
+    -- Effects SubMenu
+    for i = 1, #COLORS do
+        local e = COLORS[i]
+
+        effects_menu:AddButton({
+            icon = nil,
+            label = e.title,
+            value = i,
+            description = ("%s / %s"):format(i, #COLORS)
+        }):On("select", function(button_ref)
+            if not e.input then
+                DENEON.lights_index = i
+            else
                 local c_data = e.colors[1]
                 local c_data_txt = table.concat(c_data, ', ')
-                local pressed, input = wm.InputButton(("%s (%s)"):format(e.title, c_data_txt), "FMMC_MPM_NA", c_data_txt, 13, i == DENEON.lights_index and "✅" or '')
-
-                if pressed then
+                local input = GetInputFromUser(("%s (%s)"):format(e.title, c_data_txt), "FMMC_MPM_NA", c_data_txt, 13, i == DENEON.lights_index and "✅" or '')
+                if input then
                     c_data = {}
                     for color_value in input:gmatch("%d+") do
                         local len = #c_data
@@ -120,20 +150,8 @@ local function DrawMenu()
                     COLORS[i].colors[1] = c_data
                     DENEON.lights_index = i
                 end
-            else
-                if wm.Button(e.title, i == DENEON.lights_index and "✅" or '') then
-                    DENEON.lights_index = i
-                end
             end
-        end
-        wm.End()
-    elseif wm.Begin("deunderglow_toggles") then
-        for i = 1, #TOGGLES do
-            if wm.Button(TOGGLES[i].title, i == DENEON.toggles_index and "✅" or '') then
-                DENEON.toggles_index = i
-            end
-        end
-        wm.End()
+        end)
     end
 end
 
@@ -142,13 +160,6 @@ local function InitialSettings()
 
     SetDeltaT(1, 0)
     SetDeltaT(2, 0)
-
-    wm.CreateMenu("deunderglow_main", LOCALE.menu_title, LOCALE.menu_subtitle)
-    wm.CreateSubMenu('deunderglow_toggles', 'deunderglow_main', LOCALE.toggles_menu_subtitle)
-    wm.CreateSubMenu('deunderglow_effects', 'deunderglow_main', LOCALE.effects_menu_subtitle)
-    wm.SetMenuStyle('deunderglow_main', MENU_STYLE)
-    wm.SetMenuStyle('deunderglow_toggles', MENU_STYLE)
-    wm.SetMenuStyle('deunderglow_effects', MENU_STYLE)
 
     for i = 1, #TOGGLES do
         local e = TOGGLES[i]
@@ -159,12 +170,14 @@ local function InitialSettings()
         end
     end
 
+    BuildMenu()
+
     -- Menu Keybind
     if MENU_TOGGLE_KEY then
         RegisterCommand(MENU_COMMAND, function()
-            ToggleMenu(not wm.IsAnyMenuOpened())
+            main_menu("open_menu")
         end, false)
-        RegisterKeyMapping(MENU_COMMAND, "Open de_underglow Menu", "KEYBOARD", MENU_TOGGLE_KEY)
+        main_menu:OpenWith('KEYBOARD', MENU_TOGGLE_KEY)
     end
 
     print('de_underglow by ^1-del1an#9999^7 | ^2Loaded')
@@ -202,15 +215,11 @@ Citizen.CreateThread(function()
     end
 end)
 
----@tick EVERY FRAME - Main (Menu and Toggles)
+---@tick EVERY FRAME - Game Tick
 Citizen.CreateThread(function()
     while not DENEON.loaded do Wait(20) end
     while true do Wait(0)
         _GTIMER = GetGameTimer() -- used by DeltaT functions
-
-        if DENEON.should_draw then
-            DrawMenu()
-        end
     end
 end)
 
