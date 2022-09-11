@@ -109,7 +109,6 @@ local function BuildMenu()
 
     toggle_neons:On('change', function(button_ref, toggle)
         DENEON.neons_enabled = toggle
-        print(toggle, type(toggle))
         ToggleVehicleNeons(_VEH, { toggle, toggle, toggle, toggle })
     end)
 
