@@ -78,6 +78,10 @@ function AnimVehicleNeonsToggle(handle, e)
     end
 end
 
+function ToggleMenu(bool)
+    _ = bool and main_menu("open_menu") or main_menu("close_menu")
+end
+
 local function GetInputFromUser(text, windowTitleEntry, defaultText, maxLength)
     AddTextEntry("FMMC_MPM_NA", text)
     DisplayOnscreenKeyboard(1, windowTitleEntry or 'FMMC_MPM_NA', '', defaultText or '', '', '', '', maxLength or 255)
