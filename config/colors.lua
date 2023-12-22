@@ -1,19 +1,15 @@
 COLORS = {
     {
-        title = "🎨 Custom STEP",
+        title = "🎨 Custom (RGB) STEP",
         type = "step",
-        input = true, -- Let the user to pick a color (it works only for the first one in the list)
-        colors = {
-            { 255, 0, 0 },
-        }
+        input = true, -- Let the user to pick a color
+        colors = { { 255, 255, 255 }, }
     },
     {
-        title = "🎨 Custom BREATH",
+        title = "🎨 Custom (RGB) BREATH",
         type = "breath",
-        input = true, -- Let the user to pick a color (it works only for the first one in the list)
-        colors = {
-            { 255, 255, 255 },
-        }
+        input = true, -- Let the user to pick a color
+        colors = { { 255, 255, 255 }, }
     },
     {
         title = "🎨 Blue STEP",
@@ -60,4 +56,3 @@ COLORS = {
         },
     },
 }
-                                                                                                                                                                                       

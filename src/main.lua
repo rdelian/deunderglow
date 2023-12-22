@@ -1,15 +1,14 @@
 DENEON = {
     should_draw = false,
     enabled = false,
-    neons_enabled = false,
-    -- toggles_enabled = false,
+    sync_xenon = false,
     toggles_index = 1,
     lights_index = 1,
     loaded = false,
 }
-DELTAT_DATA = {0,0}
-_GTIMER, _PED, _VEH, _IN_CAR  = 0, nil, nil, nil
-local main_menu = nil
+DELTAT_DATA                  = { 0, 0 }
+_GTIMER, _PED, _VEH, _IN_CAR = 0, 0, 0, 0
+local main_menu              = nil
 
 local function SetDeltaT(key, a)
     DELTAT_DATA[key] = _GTIMER - a
@@ -33,11 +32,27 @@ function ToggleVehicleNeons(handle, data)
 end
 
 ---@param handle integer @Car handle
+---@param toggle boolean @Install / Remove xenon lights
+function ToggleXenonLights(handle, toggle)
+    ToggleVehicleMod(handle, 22, toggle)
+end
+
+local function ResetVehicleLightsState(handle)
+    local _, lowbeam, highbeam = GetVehicleLightsState(handle)
+    if lowbeam == 0 and highbeam == 0 then
+        SetVehicleLights(handle, 3)
+    end
+end
+
+---@param handle integer @Car handle
 ---@param e table @Effect data
 function AnimVehicleNeonsColor(handle, e)
     if e.type == 'step' then
         for i = 1, #e.colors do
             SetVehicleNeonLightsColour(handle, e.colors[i][1], e.colors[i][2], e.colors[i][3])
+            if DENEON.sync_xenon then
+                SetVehicleXenonLightsCustomColor(handle, e.colors[i][1], e.colors[i][2], e.colors[i][3])
+            end
             DeltaWait(2, 200)
         end
     elseif e.type == 'breath' then
@@ -49,6 +64,13 @@ function AnimVehicleNeonsColor(handle, e)
                     math.floor(e.colors[i][2] * a),
                     math.floor(e.colors[i][3] * a)
                 )
+                if DENEON.sync_xenon then
+                    SetVehicleXenonLightsCustomColor(handle,
+                        math.floor(e.colors[i][1] * a),
+                        math.floor(e.colors[i][2] * a),
+                        math.floor(e.colors[i][3] * a)
+                    )
+                end
             end
 
             DeltaWait(2, 20)
@@ -60,6 +82,13 @@ function AnimVehicleNeonsColor(handle, e)
                     math.floor(e.colors[i][2] * a),
                     math.floor(e.colors[i][3] * a)
                 )
+                if DENEON.sync_xenon then
+                    SetVehicleXenonLightsCustomColor(handle,
+                        math.floor(e.colors[i][1] * a),
+                        math.floor(e.colors[i][2] * a),
+                        math.floor(e.colors[i][3] * a)
+                    )
+                end
             end
         end
     end
@@ -67,11 +96,16 @@ end
 
 ---@param handle integer @Car handle
 ---@param e table @Effect data
-function AnimVehicleNeonsToggle(handle, e)
+function AnimVehicleToggle(handle, e)
     if GetDeltaT(1) > 200 then
         if not e.index or e.index > #e.anim then e.index = 1 end
 
         ToggleVehicleNeons(handle, e.anim[e.index])
+
+        if DENEON.sync_xenon and e.xenon then
+            SetVehicleLights(handle, e.xenon[e.index] == 1 and 3 or 1)
+        end
+
         SetDeltaT(1, 0)
 
         e.index = e.index + 1
@@ -79,7 +113,7 @@ function AnimVehicleNeonsToggle(handle, e)
 end
 
 function ToggleMenu(bool)
-    _ = bool and main_menu("open_menu") or main_menu("close_menu")
+    main_menu("close_menu")
 end
 
 local function GetInputFromUser(text, windowTitleEntry, defaultText, maxLength)
@@ -102,8 +136,11 @@ local function BuildMenu()
     local effects_menu = MenuV:CreateMenu(nil, LOCALE.menu_title, MENU_STYLE.position, r, g, b, MENU_STYLE.size, 'none', 'menuv', 'de_underglow_colors')
     local toggles_menu = MenuV:CreateMenu(nil, LOCALE.menu_title, MENU_STYLE.position, r, g, b, MENU_STYLE.size, 'none', 'menuv', 'de_underglow_toggles')
 
-    local toggle_effects = main_menu:AddCheckbox({ icon = '⚙', label = LOCALE.main_script, value = 'n' })
-    local toggle_neons = main_menu:AddCheckbox({ icon = '⚙', label = LOCALE.toggle_neons, value = 'n' })
+    local toggle_effects = main_menu:AddCheckbox({ icon = '✨', label = LOCALE.main_script, value = 'n' })
+    -- local install_neons = main_menu:AddCheckbox({ icon = '🔧', label = LOCALE.install_neons, value = 'n' })
+    -- local install_xenon = main_menu:AddCheckbox({ icon = '🔧', label = LOCALE.install_xenon, value = 'n' })
+    local sync_xenon = main_menu:AddCheckbox({ icon = '🔃', label = LOCALE.sync_xenon, value = 'n' })
+
     main_menu:AddButton({ icon = '🎨', label = LOCALE.effects_menu_title, value = effects_menu, description = nil })
     main_menu:AddButton({ icon = '🚦', label = LOCALE.toggles_menu_title, value = toggles_menu, description = nil })
 
@@ -111,9 +148,20 @@ local function BuildMenu()
         DENEON.enabled = toggle
     end)
 
-    toggle_neons:On('change', function(button_ref, toggle)
-        DENEON.neons_enabled = toggle
-        ToggleVehicleNeons(_VEH, { toggle, toggle, toggle, toggle })
+    -- install_neons:On('change', function(button_ref, toggle)
+    --     ToggleVehicleNeons(_VEH, { toggle, toggle, toggle, toggle })
+    -- end)
+
+    -- install_xenon:On('change', function(button_ref, toggle)
+    --     ToggleXenonLights(_VEH, toggle)
+    -- end)
+
+    sync_xenon:On('change', function(button_ref, toggle)
+        DENEON.sync_xenon = toggle
+        if CONFIG.INSTALL_XENON_LIGHTS_WHEN_SYNC and toggle then
+            ToggleXenonLights(_VEH, true)
+        end
+        ResetVehicleLightsState(_VEH)
     end)
 
     -- Toggles SubMenu
@@ -125,6 +173,9 @@ local function BuildMenu()
             description = ("%s / %s"):format(i, #TOGGLES)
         }):On("select", function(button_ref)
             DENEON.toggles_index = i
+            if not TOGGLES[i].xenon then
+                ResetVehicleLightsState(_VEH)
+            end
         end)
     end
 
@@ -143,7 +194,7 @@ local function BuildMenu()
             else
                 local c_data = e.colors[1]
                 local c_data_txt = table.concat(c_data, ', ')
-                local input = GetInputFromUser(("%s (%s)"):format(e.title, c_data_txt), "FMMC_MPM_NA", c_data_txt, 13, i == DENEON.lights_index and "✅" or '')
+                local input = GetInputFromUser(("%s (%s)"):format(e.title, c_data_txt), "FMMC_MPM_NA", c_data_txt, 15)
                 if input then
                     c_data = {}
                     for color_value in input:gmatch("%d+") do
@@ -176,22 +227,23 @@ local function InitialSettings()
     BuildMenu()
 
     -- Menu Keybind
-    if MENU_TOGGLE_KEY then
-        RegisterCommand(MENU_COMMAND, function()
+    if CONFIG.MENU_TOGGLE_KEY then
+        RegisterCommand(CONFIG.MENU_COMMAND, function()
             main_menu("open_menu")
         end, false)
-        main_menu:OpenWith('KEYBOARD', MENU_TOGGLE_KEY)
+        main_menu:OpenWith('KEYBOARD', CONFIG.MENU_TOGGLE_KEY)
     end
 
-    print('de_underglow by ^1-del1an#9999^7 | ^2Loaded')
+    print('[^2LOADED^8] de_underglow by ^1-del1an^7')
 
     DENEON.loaded = true
 end
 
 ---@tick 500ms
-Citizen.CreateThread(function()
+CreateThread(function()
     while not DENEON.loaded do Wait(20) end
-    while true do Wait(500)
+    while true do
+        Wait(500)
         _PED = PlayerPedId()
         _VEH = GetVehiclePedIsIn(_PED, false)
         _IN_CAR = GetVehiclePedIsIn(_PED, false) ~= 0
@@ -199,32 +251,35 @@ Citizen.CreateThread(function()
 end)
 
 ---@tick 100ms -- Neons Toggle
-Citizen.CreateThread(function()
+CreateThread(function()
     while not DENEON.loaded do Wait(20) end
-    while true do Wait(100)
-        if _IN_CAR and DENEON.enabled and DENEON.neons_enabled then
-            AnimVehicleNeonsToggle(_VEH, TOGGLES[DENEON.toggles_index])
+    while true do
+        Wait(100)
+        if _IN_CAR and DENEON.enabled then
+            AnimVehicleToggle(_VEH, TOGGLES[DENEON.toggles_index])
         end
     end
 end)
 
 ---@tick 10ms - Colors only
-Citizen.CreateThread(function()
+CreateThread(function()
     while not DENEON.loaded do Wait(20) end
-    while true do Wait(10)
-        if _IN_CAR and DENEON.enabled and DENEON.neons_enabled then
+    while true do
+        Wait(10)
+        if _IN_CAR and DENEON.enabled then
             AnimVehicleNeonsColor(_VEH, COLORS[DENEON.lights_index])
         end
     end
 end)
 
 ---@tick EVERY FRAME - Game Tick
-Citizen.CreateThread(function()
+CreateThread(function()
     while not DENEON.loaded do Wait(20) end
-    while true do Wait(0)
+    while true do
+        Wait(0)
         _GTIMER = GetGameTimer() -- used by DeltaT functions
     end
 end)
 
 -- Init script settings
-Citizen.CreateThread(InitialSettings)
+CreateThread(InitialSettings)

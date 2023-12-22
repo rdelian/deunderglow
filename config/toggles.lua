@@ -1,4 +1,4 @@
--- anim order {LEFT, RIGHT, FRONT, BACK}
+-- anim order = {LEFT, RIGHT, FRONT, BACK}
 
 TOGGLES = {
     {
@@ -6,7 +6,8 @@ TOGGLES = {
         echo = false,
         anim = {
             { 1, 1, 1, 1 }
-        }
+        },
+        xenon = false
     },
     {
         title = "🚦 Flip Flop",
@@ -14,7 +15,8 @@ TOGGLES = {
         anim = {
             { 0, 0, 1, 1 },
             { 1, 1, 0, 0 },
-        }
+        },
+        xenon = {1, 0},
     },
     {
         title = "🚦 Edges",
@@ -22,7 +24,8 @@ TOGGLES = {
         anim = {
             { 1, 0, 0, 1 },
             { 0, 1, 1, 0 }
-        }
+        },
+        xenon = {0, 1},
     },
     {
         title = "🚦 Linear",
@@ -31,7 +34,8 @@ TOGGLES = {
             { 0, 0, 0, 1 },
             { 1, 1, 0, 0 },
             { 0, 0, 1, 0 },
-        }
+        },
+        xenon = {0, 0, 1},
     },
     {
         title = "🚦 Linear Reverse",
@@ -40,7 +44,8 @@ TOGGLES = {
             { 0, 0, 1, 0 },
             { 1, 1, 0, 0 },
             { 0, 0, 0, 1 },
-        }
+        },
+        xenon = {1, 0, 0},
     },
     {
         title = "🚦 Linear Echo",
@@ -49,7 +54,8 @@ TOGGLES = {
             { 0, 0, 0, 1 },
             { 1, 1, 0, 0 },
             { 0, 0, 1, 0 },
-        }
+        },
+        xenon = {0, 0, 1},
     },
     {
         title = "🚦 Zig Zag",
@@ -59,7 +65,8 @@ TOGGLES = {
             { 1, 0, 0, 0 },
             { 0, 1, 0, 0 },
             { 0, 0, 1, 0 },
-        }
+        },
+        xenon = {0, 0, 0, 1},
     },
     {
         title = "🚦 Zig Zag Echo",
@@ -69,7 +76,8 @@ TOGGLES = {
             { 1, 0, 0, 0 },
             { 0, 1, 0, 0 },
             { 0, 0, 1, 0 },
-        }
+        },
+        xenon = {0, 0, 0, 1}
     },
     {
         title = "🚦 Circle",
@@ -79,7 +87,8 @@ TOGGLES = {
             { 1, 0, 0, 0 },
             { 0, 0, 1, 0 },
             { 0, 1, 0, 0 },
-        }
+        },
+        xenon = {0, 0, 1, 0}
     },
     {
         title = "🚦 Circle Group",
@@ -89,7 +98,7 @@ TOGGLES = {
             { 1, 0, 1, 0 },
             { 0, 1, 1, 0 },
             { 0, 1, 0, 1 },
-        }
-    }
+        },
+        xenon = {0, 1, 1, 0},
+    },
 }
-                                                                                                                                                                                                             
